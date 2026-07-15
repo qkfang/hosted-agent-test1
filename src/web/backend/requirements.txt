@@ -1,0 +1,22 @@
+# AG-UI backend for the slogan workflow.
+#
+# agent-framework-ag-ui is a pre-release package, so install with:
+#   pip install --pre -r requirements.txt
+
+# Agent Framework core + Foundry chat client (workflow, agents, FoundryChatClient).
+agent-framework-foundry
+
+# AG-UI protocol integration — provides add_agent_framework_fastapi_endpoint and
+# pulls in fastapi, uvicorn, and sse-starlette as dependencies.
+agent-framework-ag-ui
+
+# Auth to the Foundry model deployment (DefaultAzureCredential).
+azure-identity
+# Async credential path used by the agent framework needs aiohttp.
+aiohttp
+
+# Local .env loading and the ASGI server (also pulled in transitively, pinned here
+# so `python server.py` works without relying on transitive installs).
+python-dotenv
+fastapi
+uvicorn
