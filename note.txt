@@ -1,0 +1,1 @@
+azd ai agent files download dummy.txt --session-id d6ed30c635f6d65f1fc5d3f6918762044e1cffc1490540a9923a42c7f861df9

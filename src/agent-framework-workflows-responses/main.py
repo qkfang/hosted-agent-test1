@@ -18,8 +18,16 @@ routes each declared protocol to its matching path on this container.
 """
 
 import os
+from pathlib import Path
 
-from agent_framework import Agent, AgentExecutor, WorkflowBuilder
+from agent_framework import (
+    Agent,
+    AgentExecutor,
+    AgentExecutorResponse,
+    WorkflowBuilder,
+    WorkflowContext,
+    executor,
+)
 from agent_framework.foundry import FoundryChatClient
 from agent_framework_ag_ui import add_agent_framework_fastapi_endpoint
 from agent_framework_foundry_hosting import ResponsesHostServer
@@ -29,6 +37,33 @@ from fastapi import FastAPI
 
 # Load environment variables from .env file
 load_dotenv()
+
+# File where the hosted agent writes each final formatted slogan. It lives under the
+# session's $HOME so it shows up through the Foundry file API (the same folder that
+# `azd ai agent files upload/list/download` targets — paths there are resolved relative
+# to $HOME). Keep the default relative so it always lands in $HOME; an absolute override
+# via HOSTED_AGENT_OUTPUT_FILE writes outside $HOME and will NOT appear in the file API.
+_OUTPUT_FILE = Path(
+    os.environ.get("HOSTED_AGENT_OUTPUT_FILE", "hosted-agent-output.txt")
+)
+if not _OUTPUT_FILE.is_absolute():
+    _OUTPUT_FILE = Path.home() / _OUTPUT_FILE
+
+
+@executor(id="file_writer")
+async def write_output_to_file(
+    response: AgentExecutorResponse, ctx: WorkflowContext[None, str]
+) -> None:
+    """Persist the final formatted slogan to a local file, then emit it as the output.
+
+    This runs as the terminal step of the workflow so the caller still receives the
+    formatted text over the Responses/AG-UI protocols while a copy is written to
+    ``~/hosted-agent-output.txt`` (or ``HOSTED_AGENT_OUTPUT_FILE``) on the container.
+    """
+    text = response.agent_response.text
+    _OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _OUTPUT_FILE.write_text(text, encoding="utf-8")
+    await ctx.yield_output(text)
 
 
 def build_workflow_agent():
@@ -72,12 +107,14 @@ def build_workflow_agent():
     return (
         WorkflowBuilder(
             start_executor=writer_executor,
-            # Limiting the output to only the final formatted result.
+            # Limiting the output to only the final formatted result written to disk.
             # If this is not set, all intermediate results will be included in the output.
-            output_executors=[format_executor],
+            output_executors=[write_output_to_file],
         )
         .add_edge(writer_executor, legal_executor)
         .add_edge(legal_executor, format_executor)
+        # Terminal step: write the formatted slogan to a local file in the home directory.
+        .add_edge(format_executor, write_output_to_file)
         .build()
         .as_agent()
     )
