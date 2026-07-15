@@ -9,10 +9,13 @@ metadata:
         - Agent Framework
         - AI Agent Hosting
         - Azure AI AgentServer
-        - Responses Protocol
+        - Invocations Protocol
+        - AG-UI
         - Streaming
 protocols:
     - protocol: responses
+      version: 2.0.0
+    - protocol: invocations
       version: 2.0.0
 resources:
     cpu: "0.25"

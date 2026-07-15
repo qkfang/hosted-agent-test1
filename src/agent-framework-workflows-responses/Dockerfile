@@ -6,7 +6,7 @@ COPY . user_agent/
 WORKDIR /app/user_agent
 
 RUN if [ -f requirements.txt ]; then \
-        pip install -r requirements.txt; \
+        pip install --pre -r requirements.txt; \
     else \
         echo "No requirements.txt found"; \
     fi
